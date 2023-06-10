@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>chat</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+      }
+      li {
+        width: calc(100% - 56px);
+        height: auto;
+        margin: 20px 16px;
+        padding: 12px;
+        list-style: none;
+        border: solid 1px #999;
+        box-shadow: 0 0 8px #aaa;
+        border-radius: 16px;
+      }
+
+      li:nth-child(2n) {
+        background-color: #979bdd;
+      }
+      li:nth-child(2n-1) {
+        background-color: #e6c2d2;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <form action="post">
+        <h3>AI에게 내 연봉에 맞는 차량 추천받기</h3>
+        <div>
+          <label for="salary">연봉: </label>
+          <input id="salary" type="number" autofocus></input>
+          <span>만원</span>
+        </div>
+        <div>
+          <label for="use">용도: </label>
+          <select id="use">
+            <option value="출퇴근">출퇴근</option>
+            <option value="여행">여행</option>
+            <option value="간단한 외출">외출용</option>
+          </select>
+        </div>
+        <div>
+          <label for="perspective">가치관: </label>
+          <select id="perspective">
+            <option value="가성비가 중요하지">가성비가 중요하지</option>
+            <option value="그냥 평범한게 최고야">그냥 평범한게 최고야</option>
+            <option value="카푸어가 되더라도 럭셔리하게 살고싶어">카푸어가 되더라도 럭셔리하게 살고싶어</option>
+            <option value="최대한 오래 타고싶어">최대한 오래 타고싶어</option>
+          </select>
+        </div>
+        <button type="submit">내 조건에 맞는 차 확인하기</button>
+      </form>
+      <ul></ul>
+    </div>
+    <script>
+      const $form = document.querySelector("form");
+      const $연봉 = document.querySelector("#salary");
+      const $용도 = document.querySelector("#use");
+      const $가치관 = document.querySelector("#perspective");
+      const $chatList = document.querySelector("ul");
+
+      // openAI API
+      let url = `https://estsoft-openai-api.jejucodingcamp.workers.dev/`;
+
+      // 사용자의 질문
+      let question;
+
+      // 질문과 답변 저장
+      let data = [
+        {
+          role: "system",
+          content: "assistant는 친절한 답변가이다.\n유저는 현재 연봉에 맞는 차량을 추천받고 싶다.\n아래의 데이터에 기초해서 답변을 해주어야 한다.\n",
+        },
+      ];
+
+      // 화면에 뿌려줄 데이터, 질문들
+      let questionData = [];
+
+      // 사용자의 질문을 객체를 만들어서 push
+      const sendQuestion = (question) => {
+        if (question) {
+          data.push({
+            role: "user",
+            content: question,
+          });
+          questionData.push({
+            role: "user",
+            content: question,
+          });
+        }
+      };
+
+      // 화면에 질문 그려주는 함수
+      const printQuestion = async () => {
+        if (question) {
+          let li = document.createElement("li");
+          li.classList.add("question");
+          questionData.map((el) => {
+            li.innerText = el.content;
+          });
+          $chatList.appendChild(li);
+          questionData = [];
+          question = null;
+        }
+      };
+
+      // 화면에 답변 그려주는 함수
+      const printAnswer = (answer) => {
+        let li = document.createElement("li");
+        li.classList.add("answer");
+        li.innerText = answer;
+        $chatList.appendChild(li);
+      };
+
+      // api 요청보내는 함수
+      const apiPost = async () => {
+        const result = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(data),
+          redirect: "follow",
+        })
+          .then((res) => res.json())
+          .then((res) => {
+            printAnswer(res.choices[0].message.content);
+          })
+          .catch((err) => {
+            console.log(err);
+          });
+      };
+
+      // submit
+      $form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        question = `현재 연봉은 ${$연봉.value} 만원 받고 있고, 차를 사려는 용도는 ${$용도.value}(이)야.\n그리고 난 ${$가치관.value} 라고 생각해`
+        $연봉.value = null;
+        $용도.value = null;
+        $가치관.value = null;
+        sendQuestion(question);
+        apiPost();
+        printQuestion();
+      });
+    </script>
+  </body>
+</html>
